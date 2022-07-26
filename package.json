@@ -31,7 +31,7 @@
     "esm/**/style/**"
   ],
   "publishConfig": {
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://govindustry-npm.pkg.coding.net/tax_tdgv/npm/"
   },
   "repository": {
     "type": "git",
