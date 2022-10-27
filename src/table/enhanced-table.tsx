@@ -22,6 +22,8 @@ const PRIMARY_B_EVENTS = [
   'async-loading-click',
   'column-change',
   'display-columns-change',
+  'row-edit',
+  'row-validate',
 ];
 
 const PRIMARY_ALL_EVENTS = BASE_TABLE_ALL_EVENTS.concat(PRIMARY_B_EVENTS);
