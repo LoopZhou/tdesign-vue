@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import { InjectionKey, ComponentInstance } from '@vue/composition-api';
 import DialogComponent from './dialog';
 
 import { getAttach } from '../utils/dom';
@@ -6,11 +7,31 @@ import {
   DialogOptions, DialogMethod, DialogConfirmMethod, DialogAlertMethod, DialogInstance,
 } from './type';
 
-const createDialog: DialogMethod = (props: DialogOptions) => {
+function resolveInject(provideKey: InjectionKey<any> | string, vm: ComponentInstance): any {
+  let source = vm;
+  while (source) {
+    // @ts-ignore
+    if (source._provided && Object.hasOwnProperty.call(source._provided, provideKey)) {
+      // @ts-ignore
+      return source._provided[provideKey];
+    }
+    source = source.$parent;
+  }
+
+  return {};
+}
+
+const createDialog: DialogMethod = function (props: DialogOptions) {
   const options = { ...props };
+
+  // @ts-ignore
+  const global = resolveInject('globalConfig', this);
+  const dialogConfig = global.dialog || {};
+
   const dialog = new DialogComponent({
     propsData: {
       ...options,
+      ...dialogConfig,
       onClose:
         options.onClose
         || (() => {
