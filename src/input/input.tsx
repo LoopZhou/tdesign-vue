@@ -18,6 +18,8 @@ import { renderTNodeJSX } from '../utils/render-tnode';
 import FormItem from '../form/form-item';
 import log from '../_common/js/log';
 
+const ANIMATION_TIME = 100;
+
 function getValidAttrs(obj: object): object {
   const newObj = {};
   Object.keys(obj).forEach((key) => {
@@ -70,6 +72,8 @@ export default mixins(
       resizeObserver: null as ResizeObserver,
       preValue: this.value,
       timer: null,
+      observerTimer: null,
+      containerObserver: null as ResizeObserver,
     };
   },
   computed: {
@@ -191,9 +195,9 @@ export default mixins(
 
   created() {
     this.composing = false;
-    if (this.autoWidth) {
-      this.addListeners();
-    }
+    // if (this.autoWidth) {
+    //   this.addListeners();
+    // }
     if (this.maxlength || this.maxcharacter) {
       this.$watch(
         () => this.innerStatus,
@@ -204,12 +208,15 @@ export default mixins(
   },
 
   mounted() {
+    if (this.autoWidth) {
+      this.addListeners();
+    }
     this.addTableResizeObserver(this.$refs.inputPreRef as Element);
   },
 
   beforeDestroy() {
-    this.resizeObserver?.unobserve(this.$refs.inputPreRef as Element);
-    this.resizeObserver?.disconnect();
+    this.cleanupObserver(this.resizeObserver, this.$refs.inputPreRef as Element);
+    this.cleanupObserver(this.containerObserver, this.$refs.inputRef as Element);
   },
 
   methods: {
@@ -224,6 +231,23 @@ export default mixins(
         },
         { immediate: true },
       );
+
+      if (this.$refs.inputRef) {
+        this.$watch(
+          () => this.$refs.inputRef,
+          () => {
+            this.containerObserver = this.addObserver(this.$refs.inputRef as HTMLElement, () => {
+              if (this.autoWidth) {
+                this.observerTimer = setTimeout(() => {
+                  this.updateInputWidth();
+                  clearTimeout(this.observerTimer);
+                }, ANIMATION_TIME);
+              }
+            });
+          },
+          { immediate: true },
+        );
+      }
     },
     // 当元素默认为 display: none 状态，无法提前准确计算宽度，因此需要监听元素宽度变化。比如：Tabs 场景切换。
     addTableResizeObserver(element: Element) {
@@ -428,6 +452,24 @@ export default mixins(
       const error = this.innerStatus ? 'exceed-maximum' : undefined;
       this.onValidate?.({ error });
       this.$emit('validate', { error });
+    },
+
+    addObserver(el: HTMLElement, callback: (data: ResizeObserverEntry[]) => void): ResizeObserver {
+      if (typeof window === 'undefined') return;
+
+      const isSupport = window && (window as Window & typeof globalThis).ResizeObserver;
+      // unit tests do not need any warn console; too many warns influence focusing on more important log info
+      if (!isSupport) return;
+      const containerObserver = new ResizeObserver(callback);
+      containerObserver.observe(el);
+
+      return containerObserver;
+    },
+
+    cleanupObserver(observer: ResizeObserver, container: Element) {
+      if (!observer || !container) return;
+      observer.unobserve(container);
+      observer.disconnect();
     },
   },
 
