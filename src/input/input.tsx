@@ -231,7 +231,8 @@ export default mixins(
         this.$watch(
           () => this.$refs.inputRef,
           () => {
-            this.containerObserver = this.addObserver(this.$refs.inputRef as HTMLElement, () => {
+            this.cleanupObserver(this.containerObserver, this.$refs.inputRef as Element);
+            this.containerObserver = this.useResizeObserver(this.$refs.inputRef as HTMLElement, () => {
               if (this.autoWidth) {
                 this.observerTimer = setTimeout(() => {
                   this.updateInputWidth();
@@ -440,12 +441,13 @@ export default mixins(
       this.$emit('validate', { error });
     },
 
-    addObserver(el: HTMLElement, callback: (data: ResizeObserverEntry[]) => void): ResizeObserver {
+    useResizeObserver(el: HTMLElement, callback: (data: ResizeObserverEntry[]) => void): ResizeObserver {
       if (typeof window === 'undefined') return;
 
       const isSupport = window && (window as Window & typeof globalThis).ResizeObserver;
       // unit tests do not need any warn console; too many warns influence focusing on more important log info
       if (!isSupport) return;
+
       const containerObserver = new ResizeObserver(callback);
       containerObserver.observe(el);
 
